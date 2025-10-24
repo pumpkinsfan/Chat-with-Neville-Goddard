@@ -41,6 +41,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, isLoading }) => {
           rows={1}
           className="flex-1 bg-slate-700 text-gray-200 placeholder-slate-400 rounded-full py-3 px-5 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none transition-all duration-200"
           disabled={isLoading}
+          style={{ fontSize: '16px' }}
         />
         <button
           type="submit"
