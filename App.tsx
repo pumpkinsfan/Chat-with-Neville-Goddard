@@ -6,6 +6,7 @@ import ChatInput from './components/ChatInput';
 import LoadingIndicator from './components/LoadingIndicator';
 import Header from './components/Header';
 import ErrorDisplay from './components/ErrorDisplay';
+import SubscriptionModal from './components/SubscriptionModal';
 
 const getDynamicGreeting = (): string => {
   const greetings = [
@@ -35,6 +36,8 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [chatHistory, setChatHistory] = useState<Message[][]>([]);
+  const [showSubscription, setShowSubscription] = useState<boolean>(false);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -71,6 +74,15 @@ const App: React.FC = () => {
     setChatHistory(prev => prev.filter((_, index) => index !== chatIndex));
   };
 
+  const handleSelectPlan = (planId: string) => {
+    setSelectedPlan(planId);
+    setShowSubscription(false);
+    // Here you would typically integrate with a payment processor like Stripe
+    console.log(`Selected plan: ${planId}`);
+    // For now, we'll just show a success message
+    alert(`You've selected the ${planId} plan! Payment integration would be implemented here.`);
+  };
+
   const handleSendMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
 
@@ -100,7 +112,7 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-gray-200 font-serif">
-      <Header />
+      <Header onUpgradeClick={() => setShowSubscription(true)} />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
         {!showHistory ? (
           <>
@@ -180,6 +192,12 @@ const App: React.FC = () => {
         </div>
       )}
       {!showHistory && <ChatInput onSendMessage={handleSendMessage} isLoading={isLoading} />}
+      
+      <SubscriptionModal
+        isOpen={showSubscription}
+        onClose={() => setShowSubscription(false)}
+        onSelectPlan={handleSelectPlan}
+      />
     </div>
   );
 };
