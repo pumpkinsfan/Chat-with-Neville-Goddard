@@ -15,13 +15,21 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
     : 'bg-slate-700/80 text-gray-200 rounded-r-2xl rounded-tl-2xl';
   const authorName = isUser ? 'You' : 'Neville';
   const authorClasses = isUser ? 'text-right text-amber-300' : 'text-left text-slate-400';
+  const avatarSrc = isUser ? '/assets/user-avatar.svg' : '/assets/neville-avatar.svg';
 
   return (
     <div className={`w-full ${wrapperClasses}`}>
       <div className="max-w-xl w-full">
-        <p className={`text-xs font-semibold mb-1 px-1 ${authorClasses}`}>
-          {authorName}
-        </p>
+        <div className={`flex items-center mb-1 px-1 ${isUser ? 'justify-end' : 'justify-start'}`}>
+          <img 
+            src={avatarSrc} 
+            alt={authorName}
+            className="w-6 h-6 rounded-full mr-2"
+          />
+          <p className={`text-xs font-semibold ${authorClasses}`}>
+            {authorName}
+          </p>
+        </div>
         <div className={`p-4 shadow-md ${bubbleClasses}`}>
           <p className="whitespace-pre-wrap leading-relaxed">{message.text}</p>
           {message.sources && message.sources.length > 0 && (
