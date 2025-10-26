@@ -1,11 +1,7 @@
 // File: /api/create-checkout-session.ts
 
 import Stripe from 'stripe';
-
-// This is a required step for Vercel - using Node.js runtime for Stripe support
-export const config = {
-  runtime: 'nodejs',
-};
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 // Initialize Stripe with your secret key from environment variables.
 // NOTE: This MUST be your SECRET key (sk_live_...)
@@ -14,16 +10,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 // This is the function that will be executed when the frontend calls /api/create-checkout-session
-export default async function handler(req: Request) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), {
-      status: 405, headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
   try {
-    const body = await req.json();
-    const { tierId } = body;
+    const { tierId } = req.body;
 
     // Determine the base URL for redirects.
     const YOUR_DOMAIN = process.env.VERCEL_URL 
@@ -67,13 +60,9 @@ export default async function handler(req: Request) {
     });
 
     // Send the session ID back to the frontend.
-    return new Response(JSON.stringify({ sessionId: session.id }), {
-      status: 200, headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(200).json({ sessionId: session.id });
   } catch (err) {
     console.error((err as Error).message);
-    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    });
+    return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
