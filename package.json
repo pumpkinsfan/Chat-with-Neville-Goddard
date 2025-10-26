@@ -6,12 +6,19 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "init-db": "npx tsx scripts/init-db.ts"
   },
   "dependencies": {
-    "react": "^19.2.0",
     "@google/genai": "^1.27.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/sqlite3": "^3.1.11",
+    "bcryptjs": "^3.0.2",
+    "jsonwebtoken": "^9.0.2",
+    "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "sqlite3": "^5.1.7",
     "stripe": "^17.6.0"
   },
   "devDependencies": {
