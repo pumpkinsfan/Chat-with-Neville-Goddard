@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { SUBSCRIPTION_TIERS, SubscriptionTier } from '../utils/subscriptionTiers';
+import PaymentForm from './PaymentForm';
 
 interface PricingModalProps {
   isOpen: boolean;
@@ -9,83 +10,68 @@ interface PricingModalProps {
 }
 
 const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onSelectTier, currentTier }) => {
-  const [selectedTier, setSelectedTier] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [selectedTierForPayment, setSelectedTierForPayment] = useState<SubscriptionTier | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSelect = async (tier: SubscriptionTier) => {
-    setSelectedTier(tier.id);
-    setIsLoading(true);
-    setError(null);
+  const handleSelectTier = (tier: SubscriptionTier) => {
+    setSelectedTierForPayment(tier);
+  };
 
-    try {
-      // Call our Vercel serverless function to create a checkout session
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ tierId: tier.id }),
-      });
+  const handlePaymentSuccess = () => {
+    onClose();
+    window.location.reload(); // Reload to update subscription status
+  };
 
-      if (!response.ok) {
-        throw new Error('Failed to create checkout session');
-      }
-
-      const { sessionId } = await response.json();
-
-      // Get Stripe instance from window using environment variable
-      const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51JHsqxCuriuL8q783aNRFkXtcDlsbEpMw8kVuP5jLtwGjqxZUsMgKmIGcQI5BnICdxh8GYDq2dvdDLMhjNLKWbFq00KJ9csoIT';
-      const stripe = (window as any).Stripe(publishableKey);
-
-      // Redirect to Stripe Checkout
-      const { error } = await stripe.redirectToCheckout({
-        sessionId: sessionId,
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-    } catch (err) {
-      console.error('Payment error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      setIsLoading(false);
-      setSelectedTier(null);
-    }
+  const handleCancelPayment = () => {
+    setSelectedTierForPayment(null);
   };
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
       <div className="bg-slate-900 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-slate-700">
         <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-white">Choose Your Plan</h2>
-            <button
-              onClick={onClose}
-              className="text-slate-400 hover:text-white transition-colors"
-            >
-              ✕
-            </button>
-          </div>
+          {selectedTierForPayment ? (
+            // Show Payment Form
+            <div>
+              <button
+                onClick={handleCancelPayment}
+                className="mb-4 text-slate-400 hover:text-white transition-colors flex items-center gap-2"
+              >
+                ← Back to plans
+              </button>
+              <PaymentForm
+                tier={selectedTierForPayment}
+                onSuccess={handlePaymentSuccess}
+                onCancel={handleCancelPayment}
+              />
+            </div>
+          ) : (
+            // Show Tier Selection
+            <>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-3xl font-bold text-white">Choose Your Plan</h2>
+                <button
+                  onClick={onClose}
+                  className="text-slate-400 hover:text-white transition-colors text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {SUBSCRIPTION_TIERS.map((tier) => {
               const isCurrentTier = currentTier === tier.id;
-              const isSelected = selectedTier === tier.id;
 
               return (
                 <div
                   key={tier.id}
                   className={`border rounded-xl p-6 transition-all cursor-pointer ${
-                    isSelected
-                      ? 'border-yellow-500 bg-yellow-500/10'
-                      : isCurrentTier
+                    isCurrentTier
                       ? 'border-green-500 bg-green-500/10'
-                      : 'border-slate-700 hover:border-slate-600'
+                      : 'border-slate-700 hover:border-slate-600 hover:border-amber-500'
                   }`}
-                  onClick={() => handleSelect(tier)}
+                  onClick={() => !isCurrentTier && handleSelectTier(tier)}
                 >
                   <div className="flex items-center justify-between mb-4">
                     <div>
@@ -101,11 +87,6 @@ const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onSelectTi
                     {isCurrentTier && (
                       <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold">
                         Current Plan
-                      </span>
-                    )}
-                    {isSelected && !isCurrentTier && (
-                      <span className="bg-yellow-500 text-slate-900 px-3 py-1 rounded-full text-xs font-bold">
-                        Selected
                       </span>
                     )}
                   </div>
@@ -125,34 +106,28 @@ const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onSelectTi
 
                   <button
                     className={`w-full py-3 rounded-lg font-bold transition-all ${
-                      isCurrentTier || isLoading
+                      isCurrentTier
                         ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
-                        : isSelected
-                        ? 'bg-yellow-500 hover:bg-yellow-600 text-slate-900'
-                        : 'bg-slate-700 hover:bg-slate-600 text-white'
+                        : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-900'
                     }`}
-                    disabled={isCurrentTier || isLoading}
+                    disabled={isCurrentTier}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!isCurrentTier && !isLoading) handleSelect(tier);
+                      if (!isCurrentTier) handleSelectTier(tier);
                     }}
                   >
-                    {isCurrentTier ? 'Current Plan' : (isSelected && isLoading) ? 'Redirecting to Stripe...' : 'Select Plan'}
+                    {isCurrentTier ? 'Current Plan' : 'Select Plan'}
                   </button>
                 </div>
               );
             })}
-          </div>
+              </div>
 
-          {error && (
-            <div className="mt-4 bg-red-500/20 border border-red-500 text-red-200 p-4 rounded-lg">
-              {error}
-            </div>
+              <div className="mt-6 text-center text-slate-400 text-sm">
+                All plans include full access to Neville's teachings and Google Search integration
+              </div>
+            </>
           )}
-
-          <div className="mt-6 text-center text-slate-400 text-sm">
-            All plans include full access to Neville's teachings and Google Search integration
-          </div>
         </div>
       </div>
     </div>
