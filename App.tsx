@@ -9,6 +9,7 @@ import ErrorDisplay from './components/ErrorDisplay';
 import PaywallMessage from './components/PaywallMessage';
 import SubscriptionBanner from './components/SubscriptionBanner';
 import PricingModal from './components/PricingModal';
+import LoginModal from './components/LoginModal';
 import { saveChatHistory, loadChatHistory } from './utils/chatHistory';
 import { getTierById, SUBSCRIPTION_TIERS } from './utils/subscriptionTiers';
 
@@ -28,6 +29,7 @@ const App: React.FC = () => {
   const [currentTier, setCurrentTier] = useState<string | null>(null);
   const [tierName, setTierName] = useState<string | undefined>(undefined);
   const [showPricingModal, setShowPricingModal] = useState<boolean>(false);
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
   const [messagesUsedThisMonth, setMessagesUsedThisMonth] = useState<number>(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -133,10 +135,11 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-900 text-gray-200 font-serif">
-      <Header 
-        isSubscribed={isSubscribed} 
+      <Header
+        isSubscribed={isSubscribed}
         tierName={tierName}
-        onUpgradeClick={() => setShowPricingModal(true)} 
+        onUpgradeClick={() => setShowPricingModal(true)}
+        onLoginClick={() => setShowLoginModal(true)}
       />
       <SubscriptionBanner isSubscribed={isSubscribed} remainingMessages={remainingMessages} />
       <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
@@ -158,6 +161,10 @@ const App: React.FC = () => {
         onClose={() => setShowPricingModal(false)}
         onSelectTier={handleSelectTier}
         currentTier={currentTier || undefined}
+      />
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
       />
     </div>
   );
