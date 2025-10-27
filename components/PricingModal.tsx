@@ -10,12 +10,50 @@ interface PricingModalProps {
 
 const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onSelectTier, currentTier }) => {
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleSelect = (tier: SubscriptionTier) => {
+  const handleSelect = async (tier: SubscriptionTier) => {
     setSelectedTier(tier.id);
-    onSelectTier(tier);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Call our Vercel serverless function to create a checkout session
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tierId: tier.id }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const { sessionId } = await response.json();
+
+      // Get Stripe instance from window using environment variable
+      const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51JHsqxCuriuL8q783aNRFkXtcDlsbEpMw8kVuP5jLtwGjqxZUsMgKmIGcQI5BnICdxh8GYDq2dvdDLMhjNLKWbFq00KJ9csoIT';
+      const stripe = (window as any).Stripe(publishableKey);
+
+      // Redirect to Stripe Checkout
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: sessionId,
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    } catch (err) {
+      console.error('Payment error:', err);
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      setIsLoading(false);
+      setSelectedTier(null);
+    }
   };
 
   return (
@@ -87,24 +125,30 @@ const PricingModal: React.FC<PricingModalProps> = ({ isOpen, onClose, onSelectTi
 
                   <button
                     className={`w-full py-3 rounded-lg font-bold transition-all ${
-                      isCurrentTier
+                      isCurrentTier || isLoading
                         ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
                         : isSelected
                         ? 'bg-yellow-500 hover:bg-yellow-600 text-slate-900'
                         : 'bg-slate-700 hover:bg-slate-600 text-white'
                     }`}
-                    disabled={isCurrentTier}
+                    disabled={isCurrentTier || isLoading}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!isCurrentTier) handleSelect(tier);
+                      if (!isCurrentTier && !isLoading) handleSelect(tier);
                     }}
                   >
-                    {isCurrentTier ? 'Current Plan' : isSelected ? 'Processing...' : 'Select Plan'}
+                    {isCurrentTier ? 'Current Plan' : (isSelected && isLoading) ? 'Redirecting to Stripe...' : 'Select Plan'}
                   </button>
                 </div>
               );
             })}
           </div>
+
+          {error && (
+            <div className="mt-4 bg-red-500/20 border border-red-500 text-red-200 p-4 rounded-lg">
+              {error}
+            </div>
+          )}
 
           <div className="mt-6 text-center text-slate-400 text-sm">
             All plans include full access to Neville's teachings and Google Search integration
