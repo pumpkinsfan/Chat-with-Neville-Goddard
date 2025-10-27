@@ -6,7 +6,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // Initialize Stripe with your secret key from environment variables.
 // NOTE: This MUST be your SECRET key (sk_live_...)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
+  apiVersion: '2025-02-24.acacia',
 });
 
 // This is the function that will be executed when the frontend calls /api/create-checkout-session
