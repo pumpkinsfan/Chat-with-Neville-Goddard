@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [staging, main]
+  push:
+    branches: [staging, main]
+
+jobs:
+  validate:
+    name: Validate project
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        if: ${{ hashFiles('package.json') != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: ${{ hashFiles('package-lock.json') != '' && 'npm' || '' }}
+
+      - name: Install Node dependencies
+        if: ${{ hashFiles('package.json') != '' }}
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Run lint if available
+        if: ${{ hashFiles('package.json') != '' }}
+        run: npm run lint --if-present
+
+      - name: Run tests if available
+        if: ${{ hashFiles('package.json') != '' }}
+        run: npm test --if-present
+
+      - name: Run build if available
+        if: ${{ hashFiles('package.json') != '' }}
+        run: npm run build --if-present
+
+      - name: Set up Python
+        if: ${{ hashFiles('requirements.txt', 'pyproject.toml') != '' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        if: ${{ hashFiles('requirements.txt') != '' }}
+        run: pip install -r requirements.txt
+
+      - name: Run Python tests if present
+        if: ${{ hashFiles('requirements.txt', 'pyproject.toml') != '' }}
+        run: |
+          if [ -d tests ]; then
+            python -m pytest tests
+          else
+            echo "No Python tests directory found; skipping pytest."
+          fi
+
+      - name: Static project sanity check
+        if: ${{ hashFiles('package.json', 'requirements.txt', 'pyproject.toml') == '' }}
+        run: |
+          test -f README.md || test -f index.html || test -d src || test -d public
